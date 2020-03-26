@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dashboard/screens/login.dart';
 import 'package:dashboard/utils/firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -26,6 +28,8 @@ class HomePageState extends State<HomePage> {
   List<DocumentSnapshot> _listOfTaskers;
   //total transaction
   double totaltransaction = 0;
+  //selectedWidget
+  Widget selectedWidget;
 
   @override
   void initState() {
@@ -39,18 +43,14 @@ class HomePageState extends State<HomePage> {
     // find list of taskers
     _listOfTaskers = await CustomFirestore.getAllTaskerData();
     getAllTransactionValue();
-    print('test tra: '+totaltransaction.toString());
-    setState(() {
-      
-    });
+    selectedWidget = allUserDataList();
+    setState(() {});
   }
 
   getAllTransactionValue() {
-     Firestore.instance
-        .collection('book')
-        .snapshots()
-        .listen((snapshot) {
-      double total = snapshot.documents.fold(0, (tot, doc) => tot + double.parse(doc.data['price']));
+    Firestore.instance.collection('book').snapshots().listen((snapshot) {
+      double total = snapshot.documents
+          .fold(0, (tot, doc) => tot + double.parse(doc.data['price']));
       setState(() {
         totaltransaction = total;
       });
@@ -95,6 +95,7 @@ class HomePageState extends State<HomePage> {
                   onTap: () {
                     setState(() {
                       selectedItem = 1;
+                      selectedWidget = allUserDataList();
                     });
                   },
                   child: Padding(
@@ -119,6 +120,7 @@ class HomePageState extends State<HomePage> {
                   onTap: () {
                     setState(() {
                       selectedItem = 2;
+                      selectedWidget = allTaskerDataList();
                     });
                   },
                   child: Padding(
@@ -143,6 +145,7 @@ class HomePageState extends State<HomePage> {
                   onTap: () {
                     setState(() {
                       selectedItem = 3;
+                      selectedWidget = allUserDataList();
                     });
                   },
                   child: Padding(
@@ -169,18 +172,28 @@ class HomePageState extends State<HomePage> {
   secondHalf() {
     return Expanded(
       flex: 5,
-      child: Container(
-        child: Column(
-          children: <Widget>[
-            //top bar
-            topBar(),
-            //Divider
-            Divider(),
-            //Data
-            countData(),
-            //all user data
-            allUserDataList()
-          ],
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: SingleChildScrollView(
+          child: Container(
+            child: Column(
+              children: <Widget>[
+                //top bar
+                topBar(),
+                //Divider
+                Divider(),
+                //Data
+                countData(),
+                //all user data
+                _listOfUsers != null
+                    ? selectedWidget
+                    : Container(
+                        width: 0,
+                        height: 0,
+                      ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -200,9 +213,15 @@ class HomePageState extends State<HomePage> {
             'Admin',
             style: TextStyle(fontSize: 24),
           ),
-          Icon(
-            Icons.account_circle,
-            size: 40,
+           GestureDetector(
+             onTap: () {
+               print('admin icon');
+               logOutDropDown();
+             },
+                      child: Icon(
+              Icons.account_circle,
+              size: 40,
+            ),
           )
         ],
       ),
@@ -231,7 +250,11 @@ class HomePageState extends State<HomePage> {
                           style: style1,
                         ),
                       ),
-                      Text(_listOfUsers != null ? _listOfUsers.length.toString() : '0', style: style1)
+                      Text(
+                          _listOfUsers != null
+                              ? _listOfUsers.length.toString()
+                              : '0',
+                          style: style1)
                     ],
                   ),
                 ),
@@ -260,7 +283,11 @@ class HomePageState extends State<HomePage> {
                         padding: const EdgeInsets.only(bottom: 10.0),
                         child: Text('All taskers', style: style1),
                       ),
-                      Text(_listOfTaskers != null ? _listOfTaskers.length.toString() : '0', style: style1)
+                      Text(
+                          _listOfTaskers != null
+                              ? _listOfTaskers.length.toString()
+                              : '0',
+                          style: style1)
                     ],
                   ),
                 ),
@@ -289,7 +316,11 @@ class HomePageState extends State<HomePage> {
                         padding: const EdgeInsets.only(bottom: 10.0),
                         child: Text('All transactions', style: style1),
                       ),
-                      Text( totaltransaction != null ? totaltransaction.toString() : '0', style: style1)
+                      Text(
+                          totaltransaction != null
+                              ? totaltransaction.toString()
+                              : '0',
+                          style: style1)
                     ],
                   ),
                 ),
@@ -311,6 +342,117 @@ class HomePageState extends State<HomePage> {
   }
 
   allUserDataList() {
-    return Text('....');
+    return Padding(
+      padding: const EdgeInsets.only(left: 45, right: 45, top: 30),
+      child: Container(
+        color: Colors.white,
+        // child: ListView(shrinkWrap: true, children: getUserName()),
+        child: getUserName(),
+      ),
+    );
+  }
+
+  getUserName() {
+    List<DataRow> rows = [];
+
+    if (_listOfUsers != null) {
+      _listOfUsers.map((doc) {
+        rows.add(DataRow(cells: [
+          DataCell(
+            Text(doc[('name')]),
+          ),
+          DataCell(Text(doc["phonenumber"] != null
+              ? doc["phonenumber"].toString()
+              : 'Not added yet')),
+          DataCell(Text(doc["email"])),
+          DataCell(Text(doc["address"] != null
+              ? doc["address"].toString()
+              : 'Not added yet')),
+        ]));
+      }).toList();
+    } else {
+      rows = [];
+    }
+
+    return DataTable(
+      columns: [
+        DataColumn(label: Text('Name')),
+        DataColumn(label: Text('Phone Number')),
+        DataColumn(label: Text('Email')),
+        DataColumn(label: Text('Address')),
+      ],
+      rows: rows,
+    );
+  }
+
+  allTaskerDataList() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 45, right: 45, top: 30),
+      child: Container(
+        color: Colors.white,
+        // child: ListView(shrinkWrap: true, children: getUserName()),
+        child: taskerList(),
+      ),
+    );
+  }
+
+  taskerList() {
+    List<DataRow> rows = [];
+
+    if (_listOfTaskers != null) {
+      _listOfTaskers.map((doc) {
+        rows.add(DataRow(cells: [
+          DataCell(
+            Text(doc[('name')]),
+          ),
+          DataCell(Text(doc["phonenumber"] != null
+              ? doc["phonenumber"].toString()
+              : 'Not added yet')),
+          DataCell(Text(doc["email"])),
+          DataCell(Text(doc["address"] != null
+              ? doc["address"].toString()
+              : 'Not added yet')),
+        ]));
+      }).toList();
+    } else {
+      rows = [];
+    }
+
+    return DataTable(
+      columns: [
+        DataColumn(label: Text('Name')),
+        DataColumn(label: Text('Phone Number')),
+        DataColumn(label: Text('Email')),
+        DataColumn(label: Text('Address')),
+      ],
+      rows: rows,
+    );
+  }
+
+  logOutDropDown() {
+    return new DropdownButton<String>(
+      items: <String>['Logout', 'Login'].map((String value) {
+        return new DropdownMenuItem<String>(
+          value: value,
+          child: new Text(value),
+        );
+      }).toList(),
+      onChanged: (select) {
+        signOut();
+        navigateToLoginPage();
+      },
+    );
+  }
+
+  signOut() async {
+    return FirebaseAuth.instance.signOut();
+  }
+
+  void navigateToLoginPage() {
+    Navigator.pushReplacement(context, MaterialPageRoute(
+      builder: (context) {
+        return LoginPage();
+      },
+    ));
   }
 }
